@@ -6,20 +6,10 @@ import plotly.express as px
 # API kulcs beállítása
 API_KEY = st.secrets["openweathermap"]["api_key"]
 
-# Jelenlegi időjárás lekérése (cache-elve)
-@st.cache_data
-def get_current_weather(city, api_key):
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return None
-
-# Előrejelzés lekérése (cache-elve)
-@st.cache_data
-def get_forecast(city, api_key):
-    url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={api_key}&units=metric"
+# Adat lekérő függvény (cache-elve, TTL beállítással)
+@st.cache_data(ttl=600)  # 10 percig él a cache
+def get_data(endpoint, city, api_key):
+    url = f"http://api.openweathermap.org/data/2.5/{endpoint}?q={city}&appid={api_key}&units=metric"
     response = requests.get(url)
     if response.status_code == 200:
         return response.json()
@@ -53,7 +43,7 @@ city = st.text_input("Enter a city", "Budapest")
 
 if city:
     # Jelenlegi időjárás lekérése és megjelenítése
-    current_weather = get_current_weather(city, API_KEY)
+    current_weather = get_data("weather", city, API_KEY)
     if current_weather:
         st.subheader(f"Current Weather in {city}")
         
@@ -71,7 +61,7 @@ if city:
         st.warning("Failed to fetch current weather data. Please check the city name.")
 
     # Előrejelzés lekérése és grafikon megjelenítése
-    forecast_data = get_forecast(city, API_KEY)
+    forecast_data = get_data("forecast", city, API_KEY)
     if forecast_data:
         st.subheader(f"5-Day Temperature Forecast for {city}")
         forecast_df = process_forecast_data(forecast_data)
